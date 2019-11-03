@@ -1,0 +1,2 @@
+.app{display:flex;flex-direction:column;align-items:center}.grid-row{display:flex;flex-direction:row}.grid-cell{display:flex;flex-direction:column;border-top:1px solid #000;border-left:1px solid #000;width:15px;height:15px}.grid-cell:last-child{border-right:1px solid #000}.grid-cell-border,.grid-cell-snake{background-color:#000}.grid-cell-snack{background-color:#00f}.grid-cell-hit{background-color:red}
+/*# sourceMappingURL=main.3b9c13df.chunk.css.map */
