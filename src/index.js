@@ -75,7 +75,7 @@ const getIsSnakeClumy = (snake) =>
 const checkLevelUp = (levelCheck) => {
   if (levelCheck > 9) {
     levelUpCounter = 0;
-    tickRate += 50;
+    tickRate -= 20;
     level += 1;
   };
 }
