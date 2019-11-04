@@ -39,3 +39,7 @@
 .grid-cell-hit {
   background-color: red;
 }
+
+.grid-cell-scoreBoost {
+  background-color: green;
+}

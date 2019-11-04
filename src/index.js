@@ -3,8 +3,12 @@ import ReactDOM from 'react-dom';
 
 import './index.css';
 
-const TICK_RATE = 100;
-const GRID_SIZE = 35;
+var score = 0;
+var levelUpCounter = 0;
+var level = 1;
+var food = 0;
+var tickRate = 10;
+const GRID_SIZE = 30;
 const GRID = [];
 
 for (let i = 0; i <= GRID_SIZE; i++) {
@@ -68,8 +72,45 @@ const getIsSnakeOutside = (snake) =>
 const getIsSnakeClumy = (snake) =>
   isSnake(getSnakeHead(snake).x, getSnakeHead(snake).y, getSnakeTail(snake));
 
-const getIsSnakeEating = ({ snake, snack }) =>
- isPosition(getSnakeHead(snake).x, getSnakeHead(snake).y, snack.coordinate.x, snack.coordinate.y);
+const checkLevelUp = (levelCheck) => {
+  if (levelCheck > 9) {
+    levelUpCounter = 0;
+    tickRate += 50;
+    level += 1;
+  };
+}
+
+const getIsSnakeEating = ({ snake, snack }) => {
+  if (isPosition(getSnakeHead(snake).x, getSnakeHead(snake).y, snack.coordinate.x, snack.coordinate.y)) {
+    score += 10;
+    food += 1;
+    levelUpCounter += 1;
+    checkLevelUp(levelUpCounter);
+    return true;
+  };
+}
+
+const getIsSnakeEatingScoreBoost = ({ snake, scoreBoost }) => {
+  if (isPosition(getSnakeHead(snake).x, getSnakeHead(snake).y, scoreBoost.coordinate.x, scoreBoost.coordinate.y)) {
+    score += 50;
+    levelUpCounter += 5;
+    checkLevelUp(levelUpCounter);
+    return true;    
+  };
+}
+
+const spawnScoreBoost = ({snake, scoreBoost}) => {
+  if (food > 4) {
+    console.log(food);
+    food = 0;
+    return 1;
+  };
+
+  if (getIsSnakeEatingScoreBoost({snake, scoreBoost})) {
+    return 0;
+  };
+  return -1;
+}
 
 const cs = (classA, classGroup) => {
  for (var className in classGroup) {
@@ -80,19 +121,21 @@ const cs = (classA, classGroup) => {
  return classA;
 };
 
-const getCellCs = (isGameOver, snake, snack, x, y) =>
+const getCellCs = (isGameOver, snake, snack, scoreBoost, x, y) =>
   cs(
     'grid-cell',
     {
       'grid-cell-border': isBorder(x, y),
       'grid-cell-snake': isSnake(x, y, snake.coordinates),
       'grid-cell-snack': isPosition(x, y, snack.coordinate.x, snack.coordinate.y),
+      'grid-cell-scoreBoost': isPosition(x, y, scoreBoost.coordinate.x, scoreBoost.coordinate.y),
       'grid-cell-hit': isGameOver && isPosition(x, y, getSnakeHead(snake).x, getSnakeHead(snake).y),
     }
   );
 
 const applySnakePosition = (prevState) => {
   const isSnakeEating = getIsSnakeEating(prevState);
+  const isSnakeEatingScoreBoost = spawnScoreBoost(prevState);
 
   const snakeHead = DIRECTION_TICKS[prevState.playground.direction](
     getSnakeHead(prevState.snake).x,
@@ -107,6 +150,14 @@ const applySnakePosition = (prevState) => {
     ? getRandomCoordinate()
     : prevState.snack.coordinate;
 
+  var scoreBoostCoordinate = {x: -1, y: -1};
+  if (isSnakeEatingScoreBoost === 1) {
+    scoreBoostCoordinate = getRandomCoordinate();
+  }
+  else if (isSnakeEatingScoreBoost === -1) {
+    scoreBoostCoordinate = prevState.scoreBoost.coordinate;
+  }
+
   return {
     snake: {
       coordinates: [snakeHead, ...snakeTail],
@@ -114,6 +165,9 @@ const applySnakePosition = (prevState) => {
     snack: {
       coordinate: snackCoordinate,
     },
+    scoreBoost: {
+      coordinate: scoreBoostCoordinate,
+    }
   };
 };
 
@@ -123,11 +177,26 @@ const applyGameOver = (prevState) => ({
   },
 });
 
-const doChangeDirection = (direction) => () => ({
-  playground: {
-    direction,
-  },
-});
+const doChangeDirection = (prevState, direction) => () => {
+  let curDirection = prevState.playground.direction;
+  console.log(curDirection);
+  let upBottom = ['UP', 'BOTTOM'];
+  let leftRight = ['LEFT', 'RIGHT'];
+  if ((upBottom.includes(direction) && upBottom.includes(curDirection)) || (leftRight.includes(direction) && leftRight.includes(curDirection))) {
+    return {
+      playground: {
+        curDirection,
+      }
+    };
+  }
+  else {
+    return {
+      playground: {
+        direction,
+      },
+    };
+  }
+};
 
 class App extends React.Component {
   constructor(props) {
@@ -139,16 +208,19 @@ class App extends React.Component {
         isGameOver: false,
       },
       snake: {
-        coordinates: [({x: 15, y: 15})],
+        coordinates: [({x: GRID_SIZE/2, y: GRID_SIZE/2})],
       },
       snack: {
         coordinate: getRandomCoordinate(),
-      }
+      },
+      scoreBoost: {
+        coordinate: {x: -1, y: -1},
+      },  
     };
   }
 
   componentDidMount() {
-    this.interval = setInterval(this.onTick, TICK_RATE);
+    this.interval = setInterval(this.onTick, tickRate);
 
     window.addEventListener('keyup', this.onChangeDirection, false);
   }
@@ -161,7 +233,7 @@ class App extends React.Component {
 
   onChangeDirection = (event) => {
     if (KEY_CODES_MAPPER[event.keyCode]) {
-      this.setState(doChangeDirection(KEY_CODES_MAPPER[event.keyCode]));
+      this.setState(doChangeDirection(this.state, KEY_CODES_MAPPER[event.keyCode]));
     }
   }
 
@@ -175,15 +247,17 @@ class App extends React.Component {
     const {
       snake,
       snack,
+      scoreBoost,
       playground,
     } = this.state;
 
     return (
       <div className="app">
-        <h1>Snake!</h1>
+        <h1>Score: {score} Speed: {level}</h1>
         <Grid
           snake={snake}
           snack={snack}
+          scoreBoost={scoreBoost}
           isGameOver={playground.isGameOver}
         />
       </div>
@@ -191,7 +265,7 @@ class App extends React.Component {
   }
 }
 
-const Grid = ({ isGameOver, snake, snack }) =>
+const Grid = ({ isGameOver, snake, snack, scoreBoost }) =>
   <div>
     {GRID.map(y =>
       <Row
@@ -199,12 +273,13 @@ const Grid = ({ isGameOver, snake, snack }) =>
         key={y}
         snake={snake}
         snack={snack}
+        scoreBoost={scoreBoost}
         isGameOver={isGameOver}
       />
     )}
   </div>
 
-const Row = ({ isGameOver, snake, snack, y }) =>
+const Row = ({ isGameOver, snake, snack, scoreBoost, y }) =>
   <div className="grid-row">
     {GRID.map(x =>
       <Cell
@@ -213,13 +288,14 @@ const Row = ({ isGameOver, snake, snack, y }) =>
         key={x}
         snake={snake}
         snack={snack}
+        scoreBoost={scoreBoost}
         isGameOver={isGameOver}
       />
     )}
   </div>
 
-const Cell = ({ isGameOver, snake, snack, x, y }) =>
-  <div className={getCellCs(isGameOver, snake, snack, x, y)} />
+const Cell = ({ isGameOver, snake, snack, scoreBoost, x, y }) =>
+  <div className={getCellCs(isGameOver, snake, snack, scoreBoost, x, y)} />
 
 // ========================================
 
