@@ -137,6 +137,7 @@ const applySnakePosition = (prevState) => {
   const isSnakeEating = getIsSnakeEating(prevState);
   const isSnakeEatingScoreBoost = spawnScoreBoost(prevState);
 
+  console.log(DIRECTION_TICKS[prevState.playground.direction], prevState.playground);
   const snakeHead = DIRECTION_TICKS[prevState.playground.direction](
     getSnakeHead(prevState.snake).x,
     getSnakeHead(prevState.snake).y,
@@ -185,7 +186,7 @@ const doChangeDirection = (prevState, direction) => () => {
   if ((upBottom.includes(direction) && upBottom.includes(curDirection)) || (leftRight.includes(direction) && leftRight.includes(curDirection))) {
     return {
       playground: {
-        curDirection,
+        direction: curDirection,
       }
     };
   }
