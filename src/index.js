@@ -7,7 +7,7 @@ var score = 0;
 var levelUpCounter = 0;
 var level = 1;
 var food = 0;
-var tickRate = 10;
+var tickRate = 1000;
 const GRID_SIZE = 30;
 const GRID = [];
 
